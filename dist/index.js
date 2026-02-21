@@ -998,8 +998,6 @@ async function main() {
     process.stdin.setEncoding('utf8');
     // Handle keyboard input
     process.stdin.on('data', async (key) => {
-        // Show which key was pressed (temporary debug)
-        appState.customMessage = `Key: "${key}" Screen: ${appState.currentScreen}`;
         if (key === '\x03') {
             // Ctrl+C - immediate quit
             await handleQuit();
