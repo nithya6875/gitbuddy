@@ -1,8 +1,8 @@
-# GitBuddy
+# git-pet
 
 > A Tamagotchi-style terminal pet whose mood reflects your git repository health!
 
-GitBuddy is an adorable animated dog that lives in your terminal. Its mood and health are tied to your coding habits - frequent commits, clean working trees, and good practices make your buddy happy!
+git-pet is an adorable animated dog that lives in your terminal. Its mood and health are tied to your coding habits - frequent commits, clean working trees, and good practices make your buddy happy!
 
 ## Features
 
@@ -22,17 +22,17 @@ GitBuddy is an adorable animated dog that lives in your terminal. Its mood and h
 
 ```bash
 # Run directly with npx (no install needed!)
-npx gitbuddy
+npx git-pet
 
 # Or install globally
-npm install -g gitbuddy
-gitbuddy
+npm install -g git-pet
+git-pet
 ```
 
 ## Quick Start
 
 1. Navigate to any git repository
-2. Run `npx gitbuddy`
+2. Run `npx git-pet`
 3. Name your new pet companion
 4. Watch them react to your repository's health!
 

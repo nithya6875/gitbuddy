@@ -1,10 +1,10 @@
 {
-  "name": "gitbuddy",
+  "name": "git-pet",
   "version": "1.0.0",
   "description": "A Tamagotchi-style terminal pet whose mood reflects your repo health 🐕",
   "main": "dist/index.js",
   "bin": {
-    "gitbuddy": "./dist/index.js"
+    "git-pet": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",
