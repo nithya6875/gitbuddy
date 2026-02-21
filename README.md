@@ -4,6 +4,12 @@
 
 git-pet is an adorable animated dog that lives in your terminal. Its mood and health are tied to your coding habits - frequent commits, clean working trees, and good practices make your buddy happy!
 
+## Demo
+
+[![Watch git-pet in action](https://img.youtube.com/vi/cgpPrpufP_o/maxresdefault.jpg)](https://www.youtube.com/watch?v=cgpPrpufP_o)
+
+▶️ **[Watch the demo on YouTube](https://www.youtube.com/watch?v=cgpPrpufP_o)**
+
 ## Features
 
 - **Adorable ASCII Art Dog** - Cute animated pet with wagging tail, blinking eyes, and expressive moods
@@ -162,31 +168,53 @@ Your buddy's mood changes based on repository health:
 
 ## Screenshots
 
-```
-╭───────────────────────────────────────────────╮
-│  Buddy                                        │
-│  Mood: Happy            XP: 150/300           │
-│                                               │
-│  HP  ████████████████████  85/100             │
-│  XP  ██████████░░░░░░░░░░  150/300            │
-│                                               │
-│              ∧＿∧                              │
-│             (◕ᴥ◕)                             │
-│            ╭─∪─∪─╮                            │
-│            │ ▒▒▒ │∼                           │
-│            ╰─────╯                            │
-│             ││ ││                             │
-│                                               │
-│  💬 "*happy bark* Your repo looks great!"    │
-│                                               │
-│  ✓ Commits this week    12 commits           │
-│  ✓ Working tree         clean                │
-│  ✓ Tests                found                │
-│  ✓ README               present              │
-│                                               │
-│     [F]eed [S]tats [H]elp [E]xit             │
-╰───────────────────────────────────────────────╯
-```
+### Getting Started
+![Not a Git Repo](screenshots/Screenshot%202026-02-22%20034406.png)
+*Run git-pet outside a git repository and it will let you know!*
+
+![Name Your Pet](screenshots/Screenshot%202026-02-22%20034533.png)
+*Name your new companion when you first start*
+
+![Welcome Message](screenshots/Screenshot%202026-02-22%20034552.png)
+*Your pet greets you with a welcome message*
+
+### Main Interface
+![Main Game Screen](screenshots/Screenshot%202026-02-22%20034605.png)
+*The main interface showing your pet, HP/XP bars, mood, and repository health checks*
+
+![Pet Stretching](screenshots/Screenshot%202026-02-22%20034528.png)
+*Watch your pet perform cute animations like stretching*
+
+### Stats & Progress
+![Level Details](screenshots/Screenshot%202026-02-22%20034624.png)
+*View your pet's level progression and upcoming unlocks*
+
+![Stats Dashboard](screenshots/Screenshot%202026-02-22%20034657.png)
+*Comprehensive stats with GitHub-style commit heatmap*
+
+![Daily Challenge](screenshots/Screenshot%202026-02-22%20034635.png)
+*Complete daily challenges for bonus XP*
+
+### Features in Action
+![Feed Time](screenshots/Screenshot%202026-02-22%20034713.png)
+*Feed your pet by scanning for code issues (TODOs, FIXMEs)*
+
+![Focus Mode Selection](screenshots/Screenshot%202026-02-22%20034733.png)
+*Choose your focus session duration*
+
+![Focus Mode Running](screenshots/Screenshot%202026-02-22%20034800.png)
+*Pomodoro timer keeps you productive while your pet cheers you on*
+
+![Achievements](screenshots/Screenshot%202026-02-22%20034816.png)
+*Unlock achievements as you improve your coding habits*
+
+### Smart Tricks
+![Fetch Trick](screenshots/Screenshot%202026-02-22%20034828.png)
+*Your pet performs git commands as tricks - here fetching from remotes*
+
+![Smart Commit](screenshots/Screenshot%202026-02-22%20034836.png)
+*Smart commit assistant helps you write meaningful commit messages*
+
 
 ## Contributing
 
