@@ -76,8 +76,8 @@ class Renderer {
     terminalWidth = process.stdout.columns || 50;
     /** Animation controller for dynamic pet movements */
     animationController = (0, animations_js_1.createAnimationController)();
-    /** Whether to use dynamic animations (disabled for stability) */
-    useDynamicAnimations = false;
+    /** Whether to use dynamic animations */
+    useDynamicAnimations = true;
     // -------------------------------------------------------------------------
     // Constructor
     // -------------------------------------------------------------------------
@@ -109,14 +109,17 @@ class Renderer {
      * }));
      */
     start(getState) {
+        // Don't start if already running
+        if (this.intervalId) {
+            return;
+        }
         // Store the state callback for use in render loop
         this.renderCallback = getState;
         // Initialize message with mood-appropriate text
         this.currentMessage = (0, dialogue_js_1.getMessage)(getState().mood);
         // Reset animation controller for fresh start
         this.animationController = (0, animations_js_1.createAnimationController)();
-        // Clear log-update buffer at start
-        log_update_1.default.clear();
+        // Note: logUpdate.clear() removed - was causing issues
         // Start the render loop at ~7 FPS (150ms per frame)
         // This provides smooth walking animations
         this.intervalId = setInterval(() => {
@@ -306,6 +309,27 @@ class Renderer {
     // -------------------------------------------------------------------------
     // Utility Methods
     // -------------------------------------------------------------------------
+    /**
+     * Normalizes sprite lines to a fixed width.
+     * Ensures all lines are exactly the target width to prevent frame drift.
+     *
+     * @param sprite - Array of sprite lines
+     * @param targetWidth - Target width for all lines
+     * @returns Normalized sprite with consistent line widths
+     */
+    normalizeSprite(sprite, targetWidth) {
+        return sprite.map(line => {
+            if (line.length > targetWidth) {
+                // Trim excess from the end
+                return line.slice(0, targetWidth);
+            }
+            else if (line.length < targetWidth) {
+                // Pad with spaces
+                return line + ' '.repeat(targetWidth - line.length);
+            }
+            return line;
+        });
+    }
     /**
      * Gets the current frame number.
      * Useful for synchronizing external animations.

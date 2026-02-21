@@ -202,17 +202,18 @@ async function handleKeypress(key) {
     // Force main screen if we somehow got into an invalid state
     const validScreens = ['main', 'help', 'feed', 'play', 'playMenu', 'stats', 'reset',
         'commit', 'commitSuccess', 'focusSelect', 'focus', 'focusComplete',
-        'achievements', 'achievementUnlock', 'heatmap', 'trickSelect', 'trickResult'];
+        'achievements', 'achievementUnlock', 'heatmap', 'level', 'trickSelect', 'trickResult'];
     if (!validScreens.includes(appState.currentScreen)) {
         appState.currentScreen = 'main';
     }
     // -------------------------------------------------------------------------
-    // Overlay Screen Handling (Help, Feed, Stats, Heatmap, Achievements)
+    // Overlay Screen Handling (Help, Feed, Stats, Heatmap, Achievements, Level)
     // -------------------------------------------------------------------------
     // These screens dismiss on any key
     if (appState.currentScreen === 'help' || appState.currentScreen === 'feed' ||
         appState.currentScreen === 'stats' || appState.currentScreen === 'heatmap' ||
-        appState.currentScreen === 'achievements' || appState.currentScreen === 'trickResult') {
+        appState.currentScreen === 'achievements' || appState.currentScreen === 'trickResult' ||
+        appState.currentScreen === 'level') {
         appState.currentScreen = 'main';
         return;
     }
@@ -324,9 +325,24 @@ async function handleKeypress(key) {
     // -------------------------------------------------------------------------
     if (appState.currentScreen === 'trickSelect') {
         const available = (0, tricks_js_1.getAvailableTricks)(appState.pet.level);
-        const keyNum = parseInt(key);
-        if (keyNum >= 1 && keyNum <= available.length) {
-            await handleTrick(available[keyNum - 1]);
+        // Use string comparison for number keys (more reliable across terminals)
+        if (key === '1' && available.length >= 1) {
+            await handleTrick(available[0]);
+        }
+        else if (key === '2' && available.length >= 2) {
+            await handleTrick(available[1]);
+        }
+        else if (key === '3' && available.length >= 3) {
+            await handleTrick(available[2]);
+        }
+        else if (key === '4' && available.length >= 4) {
+            await handleTrick(available[3]);
+        }
+        else if (key === '5' && available.length >= 5) {
+            await handleTrick(available[4]);
+        }
+        else if (key === '6' && available.length >= 6) {
+            await handleTrick(available[5]);
         }
         else if (key.toLowerCase() === 'r') {
             await handleTrick((0, tricks_js_1.getRandomTrick)(appState.pet.level));
@@ -373,15 +389,10 @@ async function handleKeypress(key) {
                 await handleFeed();
                 break;
             case 'p':
-                // Play action / Smart Tricks - requires level 2
-                if (appState.pet.level >= 2) {
-                    appState.currentScreen = 'trickSelect';
-                    renderer_js_1.renderer.stop();
-                    renderer_js_1.renderer.renderCustom((0, tricks_js_1.buildTrickSelectScreen)(appState.pet));
-                }
-                else {
-                    appState.customMessage = '*whine* I need to reach level 2 first!';
-                }
+                // Play action / Smart Tricks
+                appState.currentScreen = 'trickSelect';
+                renderer_js_1.renderer.stop();
+                renderer_js_1.renderer.renderCustom((0, tricks_js_1.buildTrickSelectScreen)(appState.pet));
                 break;
             case 's':
                 // Stats/Heatmap action
@@ -404,6 +415,17 @@ async function handleKeypress(key) {
                 appState.currentScreen = 'achievements';
                 renderer_js_1.renderer.stop();
                 renderer_js_1.renderer.renderCustom((0, achievements_js_1.buildAchievementsScreen)(appState.pet));
+                break;
+            case 'l':
+                // Show level details screen
+                appState.currentScreen = 'level';
+                renderer_js_1.renderer.stop();
+                renderer_js_1.renderer.renderCustom((0, layout_js_1.buildLevelScreen)({
+                    name: appState.pet.name,
+                    level: appState.pet.level,
+                    hp: appState.pet.hp,
+                    xp: appState.pet.xp,
+                }));
                 break;
             case 'h':
                 // Show help screen
@@ -549,6 +571,9 @@ async function executeCommitAction() {
         });
         appState.pet = (0, persistence_js_2.incrementDailyCounter)(appState.pet, 'smartCommits');
         appState.pet = (0, persistence_js_2.recordSessionAction)(appState.pet, 'commit');
+        // Rescan repo health to update commit count in main frame
+        const health = await (0, scanner_js_1.scanRepo)();
+        appState.health = health;
         if (leveledUp) {
             appState.customMessage = '*HOWLS WITH JOY* I LEVELED UP!!!';
         }
@@ -628,6 +653,8 @@ async function endFocusMode() {
  * Handles a smart dog trick.
  */
 async function handleTrick(trick) {
+    // Stop renderer to ensure clean screen
+    renderer_js_1.renderer.stop();
     appState.mood = 'playing';
     appState.pet = (0, persistence_js_2.recordSessionAction)(appState.pet, 'play');
     const result = (0, tricks_js_1.executeTrick)(trick);
@@ -1005,7 +1032,8 @@ async function main() {
         else {
             // Handle other keys
             await handleKeypress(key);
-            // Restart renderer if we returned to main screen
+            // Only restart renderer if we're on main screen (not an overlay)
+            // The renderer.start() now checks if already running, preventing double-starts
             if (appState.currentScreen === 'main' && appState.isRunning) {
                 renderer_js_1.renderer.start(getRenderState);
             }

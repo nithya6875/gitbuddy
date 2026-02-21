@@ -32,7 +32,6 @@
 
 import { createRequire } from 'module';
 import * as readline from 'readline'; // For reading user input during naming
-import logUpdate from 'log-update';    // For smooth terminal UI updates
 import chalk from 'chalk';              // Terminal string styling
 
 // Import internal modules
@@ -53,7 +52,7 @@ import {
   resetState,
   type PetState,
 } from './state/persistence.js';
-import { buildLayout, buildHelpScreen } from './ui/layout.js';
+import { buildLayout, buildHelpScreen, buildLevelScreen } from './ui/layout.js';
 import {
   buildIntroFrame,
   buildExitFrame,
@@ -187,7 +186,7 @@ interface AppState {
     | 'commit' | 'commitSuccess' | 'commitEdit'
     | 'focusSelect' | 'focus' | 'focusComplete'
     | 'achievements' | 'achievementUnlock'
-    | 'heatmap'
+    | 'heatmap' | 'level'
     | 'trickSelect' | 'trickResult';
   lastActivityTime: number; // Timestamp of last user input (for idle detection)
   customMessage?: string;  // Optional override message for the speech bubble
@@ -280,18 +279,19 @@ async function handleKeypress(key: string): Promise<void> {
   // Force main screen if we somehow got into an invalid state
   const validScreens = ['main', 'help', 'feed', 'play', 'playMenu', 'stats', 'reset',
     'commit', 'commitSuccess', 'focusSelect', 'focus', 'focusComplete',
-    'achievements', 'achievementUnlock', 'heatmap', 'trickSelect', 'trickResult'];
+    'achievements', 'achievementUnlock', 'heatmap', 'level', 'trickSelect', 'trickResult'];
   if (!validScreens.includes(appState.currentScreen)) {
     appState.currentScreen = 'main';
   }
 
   // -------------------------------------------------------------------------
-  // Overlay Screen Handling (Help, Feed, Stats, Heatmap, Achievements)
+  // Overlay Screen Handling (Help, Feed, Stats, Heatmap, Achievements, Level)
   // -------------------------------------------------------------------------
   // These screens dismiss on any key
   if (appState.currentScreen === 'help' || appState.currentScreen === 'feed' ||
       appState.currentScreen === 'stats' || appState.currentScreen === 'heatmap' ||
-      appState.currentScreen === 'achievements' || appState.currentScreen === 'trickResult') {
+      appState.currentScreen === 'achievements' || appState.currentScreen === 'trickResult' ||
+      appState.currentScreen === 'level') {
     appState.currentScreen = 'main';
     return;
   }
@@ -405,10 +405,20 @@ async function handleKeypress(key: string): Promise<void> {
   // -------------------------------------------------------------------------
   if (appState.currentScreen === 'trickSelect') {
     const available = getAvailableTricks(appState.pet.level);
-    const keyNum = parseInt(key);
 
-    if (keyNum >= 1 && keyNum <= available.length) {
-      await handleTrick(available[keyNum - 1]);
+    // Use string comparison for number keys (more reliable across terminals)
+    if (key === '1' && available.length >= 1) {
+      await handleTrick(available[0]);
+    } else if (key === '2' && available.length >= 2) {
+      await handleTrick(available[1]);
+    } else if (key === '3' && available.length >= 3) {
+      await handleTrick(available[2]);
+    } else if (key === '4' && available.length >= 4) {
+      await handleTrick(available[3]);
+    } else if (key === '5' && available.length >= 5) {
+      await handleTrick(available[4]);
+    } else if (key === '6' && available.length >= 6) {
+      await handleTrick(available[5]);
     } else if (key.toLowerCase() === 'r') {
       await handleTrick(getRandomTrick(appState.pet.level));
     } else if (key.toLowerCase() === 'b' || key === '\x1b') {
@@ -455,14 +465,10 @@ async function handleKeypress(key: string): Promise<void> {
         break;
 
       case 'p':
-        // Play action / Smart Tricks - requires level 2
-        if (appState.pet.level >= 2) {
-          appState.currentScreen = 'trickSelect';
-          renderer.stop();
-          renderer.renderCustom(buildTrickSelectScreen(appState.pet));
-        } else {
-          appState.customMessage = '*whine* I need to reach level 2 first!';
-        }
+        // Play action / Smart Tricks
+        appState.currentScreen = 'trickSelect';
+        renderer.stop();
+        renderer.renderCustom(buildTrickSelectScreen(appState.pet));
         break;
 
       case 's':
@@ -489,6 +495,18 @@ async function handleKeypress(key: string): Promise<void> {
         appState.currentScreen = 'achievements';
         renderer.stop();
         renderer.renderCustom(buildAchievementsScreen(appState.pet));
+        break;
+
+      case 'l':
+        // Show level details screen
+        appState.currentScreen = 'level';
+        renderer.stop();
+        renderer.renderCustom(buildLevelScreen({
+          name: appState.pet.name,
+          level: appState.pet.level as 1 | 2 | 3 | 4 | 5,
+          hp: appState.pet.hp,
+          xp: appState.pet.xp,
+        }));
         break;
 
       case 'h':
@@ -664,6 +682,10 @@ async function executeCommitAction(): Promise<void> {
     appState.pet = incrementDailyCounter(appState.pet, 'smartCommits');
     appState.pet = recordSessionAction(appState.pet, 'commit');
 
+    // Rescan repo health to update commit count in main frame
+    const health = await scanRepo();
+    appState.health = health;
+
     if (leveledUp) {
       appState.customMessage = '*HOWLS WITH JOY* I LEVELED UP!!!';
     }
@@ -754,6 +776,9 @@ async function endFocusMode(): Promise<void> {
  * Handles a smart dog trick.
  */
 async function handleTrick(trick: ReturnType<typeof getRandomTrick>): Promise<void> {
+  // Stop renderer to ensure clean screen
+  renderer.stop();
+
   appState.mood = 'playing';
   appState.pet = recordSessionAction(appState.pet, 'play');
 
@@ -1202,7 +1227,8 @@ async function main(): Promise<void> {
       // Handle other keys
       await handleKeypress(key);
 
-      // Restart renderer if we returned to main screen
+      // Only restart renderer if we're on main screen (not an overlay)
+      // The renderer.start() now checks if already running, preventing double-starts
       if (appState.currentScreen === 'main' && appState.isRunning) {
         renderer.start(getRenderState);
       }

@@ -112,8 +112,8 @@ export class Renderer {
   /** Animation controller for dynamic pet movements */
   private animationController: AnimationController = createAnimationController();
 
-  /** Whether to use dynamic animations (disabled for stability) */
-  private useDynamicAnimations: boolean = false;
+  /** Whether to use dynamic animations */
+  private useDynamicAnimations: boolean = true;
 
   // -------------------------------------------------------------------------
   // Constructor
@@ -147,6 +147,11 @@ export class Renderer {
    * }));
    */
   start(getState: () => RenderState): void {
+    // Don't start if already running
+    if (this.intervalId) {
+      return;
+    }
+
     // Store the state callback for use in render loop
     this.renderCallback = getState;
 
@@ -156,8 +161,7 @@ export class Renderer {
     // Reset animation controller for fresh start
     this.animationController = createAnimationController();
 
-    // Clear log-update buffer at start
-    logUpdate.clear();
+    // Note: logUpdate.clear() removed - was causing issues
 
     // Start the render loop at ~7 FPS (150ms per frame)
     // This provides smooth walking animations
@@ -367,6 +371,28 @@ export class Renderer {
   // -------------------------------------------------------------------------
   // Utility Methods
   // -------------------------------------------------------------------------
+
+  /**
+   * Normalizes sprite lines to a fixed width.
+   * Ensures all lines are exactly the target width to prevent frame drift.
+   *
+   * @param sprite - Array of sprite lines
+   * @param targetWidth - Target width for all lines
+   * @returns Normalized sprite with consistent line widths
+   */
+  private normalizeSprite(sprite: string[], targetWidth: number): string[] {
+    return sprite.map(line => {
+      if (line.length > targetWidth) {
+        // Trim excess from the end
+        return line.slice(0, targetWidth);
+      } else if (line.length < targetWidth) {
+        // Pad with spaces
+        return line + ' '.repeat(targetWidth - line.length);
+      }
+      return line;
+    });
+  }
+
   /**
    * Gets the current frame number.
    * Useful for synchronizing external animations.

@@ -77,7 +77,7 @@ export declare class Renderer {
     private terminalWidth;
     /** Animation controller for dynamic pet movements */
     private animationController;
-    /** Whether to use dynamic animations (disabled for stability) */
+    /** Whether to use dynamic animations */
     private useDynamicAnimations;
     /**
      * Creates a new Renderer instance.
@@ -163,6 +163,15 @@ export declare class Renderer {
      * @param type - Type of animation to trigger
      */
     triggerAnimation(type: 'excited' | 'levelUp' | 'eating' | 'playing'): void;
+    /**
+     * Normalizes sprite lines to a fixed width.
+     * Ensures all lines are exactly the target width to prevent frame drift.
+     *
+     * @param sprite - Array of sprite lines
+     * @param targetWidth - Target width for all lines
+     * @returns Normalized sprite with consistent line widths
+     */
+    private normalizeSprite;
     /**
      * Gets the current frame number.
      * Useful for synchronizing external animations.

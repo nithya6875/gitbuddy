@@ -846,14 +846,8 @@ export function getSpriteHeight(level: Level): number {
  * @returns Modified sprite with breathing effect
  */
 export function addBreathing(sprite: string[], frame: number): string[] {
-  // For frames 4-7 of every 8-frame cycle, shift sprite up
-  if (frame % 8 < 4) {
-    return sprite;  // Normal position
-  }
-
-  // Add empty line at top and remove bottom line
-  // Creates subtle up/down breathing motion
-  return ['', ...sprite.slice(0, -1)];
+  // Breathing disabled - causes rendering issues
+  return sprite;
 }
 
 /**

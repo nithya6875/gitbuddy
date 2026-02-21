@@ -30,9 +30,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.buildLayout = buildLayout;
 exports.buildHelpScreen = buildHelpScreen;
+exports.buildLevelScreen = buildLevelScreen;
 const chalk_1 = __importDefault(require("chalk")); // Terminal string styling library
 const colors_js_1 = require("./colors.js");
 const sprites_js_1 = require("../pet/sprites.js");
+const xp_js_1 = require("../state/xp.js");
 // =============================================================================
 // STATUS ICON HELPER
 // =============================================================================
@@ -102,8 +104,7 @@ function formatHealthCheck(check, width) {
  */
 function createHelpBar(level) {
     // Show all main keys in a compact format
-    const line1 = `${chalk_1.default.bold('[F]')}eed  ${chalk_1.default.bold('[C]')}ommit  ${chalk_1.default.bold('[T]')}imer  ${chalk_1.default.bold('[S]')}tats  ${chalk_1.default.bold('[H]')}elp`;
-    return line1;
+    return `${chalk_1.default.bold('[F]')}eed ${chalk_1.default.bold('[S]')}tats ${chalk_1.default.bold('[H]')}elp ${chalk_1.default.bold('[E]')}xit`;
 }
 // =============================================================================
 // MAIN LAYOUT BUILDER
@@ -141,24 +142,16 @@ function buildLayout(data) {
     const innerWidth = width - 4; // 2 for borders + 2 for padding
     const lines = [];
     // -------------------------------------------------------------------------
-    // Top Padding - Ensures the frame is fully visible
-    // -------------------------------------------------------------------------
-    lines.push('');
-    lines.push('');
-    // -------------------------------------------------------------------------
     // Top Border - Using Unicode box-drawing characters
     // -------------------------------------------------------------------------
     lines.push(colors_js_1.colors.frame(`╭${'─'.repeat(width - 2)}╮`));
     // -------------------------------------------------------------------------
-    // Title Bar - Pet name and level display
+    // Title Bar - Pet name and level stars
     // -------------------------------------------------------------------------
-    const levelStars = (0, colors_js_1.getLevelStars)(data.level); // Generate ★★★☆☆ display
-    const title = `  🐕 ${chalk_1.default.bold(data.name || 'GitBuddy')}`;
-    const levelInfo = `Level ${data.level} ${levelStars}`;
-    // Calculate padding to right-align level info
-    // stripAnsi is needed because ANSI codes don't take visual space
-    const titlePadding = width - 4 - stripAnsi(title).length - stripAnsi(levelInfo).length;
-    lines.push(colors_js_1.colors.frame('│') + title + ' '.repeat(Math.max(1, titlePadding)) + levelInfo + colors_js_1.colors.frame(' │'));
+    const stars = '⭐'.repeat(data.level);
+    const title = `  ${data.name || 'Buddy'} ${stars}`;
+    const titlePadding = Math.max(0, width - 2 - title.length);
+    lines.push(colors_js_1.colors.frame('│') + chalk_1.default.bold.yellow(title) + ' '.repeat(titlePadding) + colors_js_1.colors.frame('│'));
     // -------------------------------------------------------------------------
     // Mood Line - Current mood with emoji and XP counter
     // -------------------------------------------------------------------------
@@ -224,30 +217,46 @@ function buildLayout(data) {
     // -------------------------------------------------------------------------
     lines.push(colors_js_1.colors.frame('│') + ' '.repeat(width - 2) + colors_js_1.colors.frame('│'));
     // -------------------------------------------------------------------------
-    // Message Bubble - Pet's speech/thought bubble
+    // Message Bubble - Pet's speech/thought bubble (fixed 2 lines)
     // -------------------------------------------------------------------------
+    const maxMsgLines = 2; // Fixed number of message lines to prevent frame drift
     if (data.message) {
         // Wrap long messages to fit within the box
-        const msgLines = wrapText(data.message, innerWidth - 6);
+        const msgLines = wrapText(data.message, innerWidth - 6).slice(0, maxMsgLines);
         // First line includes the speech bubble emoji
         lines.push(colors_js_1.colors.frame('│') + `  💬 ${chalk_1.default.italic(msgLines[0])}` + ' '.repeat(Math.max(0, width - 6 - msgLines[0].length - 2)) + colors_js_1.colors.frame('│'));
-        // Subsequent lines are indented to align with the first line's text
-        for (let i = 1; i < msgLines.length; i++) {
-            lines.push(colors_js_1.colors.frame('│') + `     ${chalk_1.default.italic(msgLines[i])}` + ' '.repeat(Math.max(0, width - 7 - msgLines[i].length)) + colors_js_1.colors.frame('│'));
+        // Second line (or empty padding)
+        if (msgLines[1]) {
+            lines.push(colors_js_1.colors.frame('│') + `     ${chalk_1.default.italic(msgLines[1])}` + ' '.repeat(Math.max(0, width - 7 - msgLines[1].length)) + colors_js_1.colors.frame('│'));
         }
+        else {
+            lines.push(colors_js_1.colors.frame('│') + ' '.repeat(width - 2) + colors_js_1.colors.frame('│'));
+        }
+    }
+    else {
+        // No message - add 2 empty lines to maintain consistent height
+        lines.push(colors_js_1.colors.frame('│') + ' '.repeat(width - 2) + colors_js_1.colors.frame('│'));
+        lines.push(colors_js_1.colors.frame('│') + ' '.repeat(width - 2) + colors_js_1.colors.frame('│'));
     }
     // -------------------------------------------------------------------------
     // Empty Spacer Line
     // -------------------------------------------------------------------------
     lines.push(colors_js_1.colors.frame('│') + ' '.repeat(width - 2) + colors_js_1.colors.frame('│'));
     // -------------------------------------------------------------------------
-    // Health Checks Section - Repository status indicators
+    // Health Checks Section - Repository status indicators (fixed 4 lines)
     // -------------------------------------------------------------------------
-    // Display up to 4 health checks to avoid cluttering the UI
-    for (const check of data.healthChecks.slice(0, 4)) {
-        const checkLine = formatHealthCheck(check, innerWidth);
-        const checkLength = stripAnsi(checkLine).length;
-        lines.push(colors_js_1.colors.frame('│') + checkLine + ' '.repeat(Math.max(0, width - 2 - checkLength)) + colors_js_1.colors.frame('│'));
+    const healthCheckCount = 4; // Fixed number of lines to prevent frame drift
+    const checks = data.healthChecks.slice(0, healthCheckCount);
+    for (let i = 0; i < healthCheckCount; i++) {
+        if (checks[i]) {
+            const checkLine = formatHealthCheck(checks[i], innerWidth);
+            const checkLength = stripAnsi(checkLine).length;
+            lines.push(colors_js_1.colors.frame('│') + checkLine + ' '.repeat(Math.max(0, width - 2 - checkLength)) + colors_js_1.colors.frame('│'));
+        }
+        else {
+            // Pad with empty line if fewer than 4 checks
+            lines.push(colors_js_1.colors.frame('│') + ' '.repeat(width - 2) + colors_js_1.colors.frame('│'));
+        }
     }
     // -------------------------------------------------------------------------
     // Empty Spacer Line
@@ -265,6 +274,14 @@ function buildLayout(data) {
     // Bottom Border
     // -------------------------------------------------------------------------
     lines.push(colors_js_1.colors.frame(`╰${'─'.repeat(width - 2)}╯`));
+    // -------------------------------------------------------------------------
+    // Fixed Height Padding - Ensure consistent total line count
+    // -------------------------------------------------------------------------
+    // This prevents frame drift by always outputting exactly 28 lines
+    const targetLineCount = 28;
+    while (lines.length < targetLineCount) {
+        lines.push(''); // Empty lines to pad to fixed height
+    }
     // Join all lines with newlines for final output
     return lines.join('\n');
 }
@@ -382,7 +399,8 @@ function buildHelpScreen() {
     // -------------------------------------------------------------------------
     const helpItems = [
         ['[F] Feed', 'Scan for TODOs/console.logs (+XP)'],
-        ['[P] Play', 'Smart dog tricks (Lvl 2+)'],
+        ['[P] Play', 'Smart dog tricks'],
+        ['[L] Level', 'View level, HP & XP details'],
         ['[C] Commit', 'Smart commit message generator'],
         ['[T] Timer', 'Focus/Pomodoro mode'],
         ['[S] Stats', 'Git heatmap & streak dashboard'],
@@ -402,6 +420,107 @@ function buildHelpScreen() {
     // -------------------------------------------------------------------------
     lines.push(colors_js_1.colors.frame('│') + ' '.repeat(width - 2) + colors_js_1.colors.frame('│'));
     lines.push(colors_js_1.colors.frame('│') + colors_js_1.colors.textDim('  Press any key to return...') + ' '.repeat(width - 36) + colors_js_1.colors.frame('│'));
+    lines.push(colors_js_1.colors.frame(`╰${'─'.repeat(width - 2)}╯`));
+    return lines.join('\n');
+}
+/**
+ * Builds the level details screen displayed when user presses [L].
+ * Shows detailed level, HP, and XP information with progress bars.
+ *
+ * @param data - LevelScreenData containing pet stats
+ * @returns A complete bordered screen string
+ */
+function buildLevelScreen(data) {
+    const width = 55;
+    const lines = [];
+    const { name, level, hp, xp } = data;
+    // Get XP progress info
+    const xpProgress = (0, xp_js_1.getXPProgress)(xp);
+    const nextLevelXP = level < 5 ? xp_js_1.levelThresholds[(level + 1)] : xp;
+    const xpInLevel = xp - xp_js_1.levelThresholds[level];
+    const xpNeededForNext = level < 5 ? xp_js_1.levelThresholds[(level + 1)] - xp_js_1.levelThresholds[level] : 0;
+    // -------------------------------------------------------------------------
+    // Header
+    // -------------------------------------------------------------------------
+    lines.push(colors_js_1.colors.frame(`╭${'─'.repeat(width - 2)}╮`));
+    lines.push(colors_js_1.colors.frame('│') + chalk_1.default.bold.yellow(`  📊 ${name}'s Level & Stats`) + ' '.repeat(width - 24 - name.length) + colors_js_1.colors.frame('│'));
+    lines.push(colors_js_1.colors.frame('│') + ' '.repeat(width - 2) + colors_js_1.colors.frame('│'));
+    // -------------------------------------------------------------------------
+    // Level Section
+    // -------------------------------------------------------------------------
+    lines.push(colors_js_1.colors.frame('│') + chalk_1.default.bold('  ⭐ Level') + ' '.repeat(width - 13) + colors_js_1.colors.frame('│'));
+    lines.push(colors_js_1.colors.frame('│') + ' '.repeat(width - 2) + colors_js_1.colors.frame('│'));
+    // Level number with stars
+    const stars = (0, colors_js_1.getLevelStars)(level);
+    const levelLine = `     Level ${level}: ${(0, xp_js_1.getLevelTitle)(level)} ${stars}`;
+    lines.push(colors_js_1.colors.frame('│') + chalk_1.default.bold.cyan(levelLine) + ' '.repeat(Math.max(0, width - 2 - levelLine.length)) + colors_js_1.colors.frame('│'));
+    // Level description
+    const desc = (0, xp_js_1.getLevelDescription)(level);
+    lines.push(colors_js_1.colors.frame('│') + colors_js_1.colors.textDim(`     ${desc}`) + ' '.repeat(Math.max(0, width - 7 - desc.length)) + colors_js_1.colors.frame('│'));
+    lines.push(colors_js_1.colors.frame('│') + ' '.repeat(width - 2) + colors_js_1.colors.frame('│'));
+    // -------------------------------------------------------------------------
+    // HP Section
+    // -------------------------------------------------------------------------
+    lines.push(colors_js_1.colors.frame('│') + chalk_1.default.bold('  ❤️  Health Points (HP)') + ' '.repeat(width - 27) + colors_js_1.colors.frame('│'));
+    lines.push(colors_js_1.colors.frame('│') + ' '.repeat(width - 2) + colors_js_1.colors.frame('│'));
+    // HP Bar (wider for detail)
+    const hpBar = (0, colors_js_1.progressBar)(hp, 100, 25, 'hp');
+    lines.push(colors_js_1.colors.frame('│') + `     ${hpBar} ${hp}/100` + ' '.repeat(Math.max(0, width - 39)) + colors_js_1.colors.frame('│'));
+    // HP status message
+    let hpStatus = '';
+    if (hp >= 80)
+        hpStatus = '💪 Excellent health!';
+    else if (hp >= 60)
+        hpStatus = '😊 Good condition';
+    else if (hp >= 40)
+        hpStatus = '😐 Needs attention';
+    else if (hp >= 20)
+        hpStatus = '😟 Low health - commit more!';
+    else
+        hpStatus = '😢 Critical - needs care!';
+    lines.push(colors_js_1.colors.frame('│') + `     ${hpStatus}` + ' '.repeat(Math.max(0, width - 7 - hpStatus.length)) + colors_js_1.colors.frame('│'));
+    lines.push(colors_js_1.colors.frame('│') + ' '.repeat(width - 2) + colors_js_1.colors.frame('│'));
+    // -------------------------------------------------------------------------
+    // XP Section
+    // -------------------------------------------------------------------------
+    lines.push(colors_js_1.colors.frame('│') + chalk_1.default.bold('  ✨ Experience Points (XP)') + ' '.repeat(width - 30) + colors_js_1.colors.frame('│'));
+    lines.push(colors_js_1.colors.frame('│') + ' '.repeat(width - 2) + colors_js_1.colors.frame('│'));
+    // Total XP
+    lines.push(colors_js_1.colors.frame('│') + `     Total XP: ${xp}` + ' '.repeat(Math.max(0, width - 18 - String(xp).length)) + colors_js_1.colors.frame('│'));
+    // XP Progress to next level
+    if (level < 5) {
+        const xpBar = (0, colors_js_1.progressBar)(xpInLevel, xpNeededForNext, 25, 'xp');
+        lines.push(colors_js_1.colors.frame('│') + `     ${xpBar} ${xpInLevel}/${xpNeededForNext}` + ' '.repeat(Math.max(0, width - 37 - String(xpInLevel).length - String(xpNeededForNext).length)) + colors_js_1.colors.frame('│'));
+        const xpToGo = nextLevelXP - xp;
+        lines.push(colors_js_1.colors.frame('│') + colors_js_1.colors.textDim(`     ${xpToGo} XP to Level ${level + 1}`) + ' '.repeat(Math.max(0, width - 22 - String(xpToGo).length - String(level + 1).length)) + colors_js_1.colors.frame('│'));
+    }
+    else {
+        lines.push(colors_js_1.colors.frame('│') + chalk_1.default.bold.yellow('     🏆 MAX LEVEL REACHED!') + ' '.repeat(width - 29) + colors_js_1.colors.frame('│'));
+        lines.push(colors_js_1.colors.frame('│') + colors_js_1.colors.textDim('     You are a Legendary Doge!') + ' '.repeat(width - 33) + colors_js_1.colors.frame('│'));
+    }
+    lines.push(colors_js_1.colors.frame('│') + ' '.repeat(width - 2) + colors_js_1.colors.frame('│'));
+    // -------------------------------------------------------------------------
+    // Level Unlocks Preview
+    // -------------------------------------------------------------------------
+    lines.push(colors_js_1.colors.frame('│') + chalk_1.default.bold('  🔓 Level Unlocks') + ' '.repeat(width - 21) + colors_js_1.colors.frame('│'));
+    const unlocks = [
+        { lvl: 1, text: 'Feed, Help, Basic tricks', unlocked: level >= 1 },
+        { lvl: 2, text: 'Smart Dog Tricks (Play)', unlocked: level >= 2 },
+        { lvl: 3, text: 'Adult Dog sprite', unlocked: level >= 3 },
+        { lvl: 4, text: 'Cool Dog with sunglasses 😎', unlocked: level >= 4 },
+        { lvl: 5, text: 'Legendary Doge with crown 👑', unlocked: level >= 5 },
+    ];
+    for (const unlock of unlocks) {
+        const icon = unlock.unlocked ? '✓' : '🔒';
+        const color = unlock.unlocked ? colors_js_1.colors.healthy : colors_js_1.colors.textDim;
+        const line = `     ${icon} Lvl ${unlock.lvl}: ${unlock.text}`;
+        lines.push(colors_js_1.colors.frame('│') + color(line) + ' '.repeat(Math.max(0, width - 2 - line.length)) + colors_js_1.colors.frame('│'));
+    }
+    // -------------------------------------------------------------------------
+    // Footer
+    // -------------------------------------------------------------------------
+    lines.push(colors_js_1.colors.frame('│') + ' '.repeat(width - 2) + colors_js_1.colors.frame('│'));
+    lines.push(colors_js_1.colors.frame('│') + colors_js_1.colors.textDim('  Press any key to return...') + ' '.repeat(width - 32) + colors_js_1.colors.frame('│'));
     lines.push(colors_js_1.colors.frame(`╰${'─'.repeat(width - 2)}╯`));
     return lines.join('\n');
 }
